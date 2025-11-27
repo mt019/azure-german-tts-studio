@@ -23,10 +23,10 @@ I built this small tool to turn German (or other language) text into high‑qual
 - Python 3.9+ (recommended)  
 - An Azure Speech Service resource (with **Key** and **Region**)
 
-I install the main dependencies with:
+I install the Python dependencies with:
 
 ```bash
-pip install streamlit azure-cognitiveservices-speech
+pip install -r requirements.txt
 ```
 
 ---
@@ -166,7 +166,7 @@ My workflow:
 我用下面指令安裝套件：
 
 ```bash
-pip install streamlit azure-cognitiveservices-speech
+pip install -r requirements.txt
 ```
 
 ---
@@ -286,4 +286,3 @@ streamlit run azure_tts_app.py
 - 把句子／單字匯出成單字卡格式（例如 Anki）。
 
 我會把這個 lab 持續當成自己的德文工具箱，需要什麼功能就慢慢加上去。 
-
