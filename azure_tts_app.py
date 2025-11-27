@@ -35,21 +35,9 @@ def get_speech_config() -> speechsdk.SpeechConfig:
 
 
 def main():
-    st.set_page_config(page_title="Azure TTS Demo", layout="centered")
+    st.set_page_config(page_title="Azure TTS Demo", layout="wide")
+
     st.title("Azure Text-to-Speech 語音合成 Demo")
-
-    with st.expander("使用說明（點我展開 / 收合）", expanded=False):
-        st.markdown(
-            """
-            使用 Azure Speech Service 將文字轉成語音檔案。
-
-            在執行本程式前，請先：
-            - 安裝套件：`pip install azure-cognitiveservices-speech streamlit`
-            - 設定 Streamlit secrets（推薦）或環境變數：
-              - `SPEECH_KEY`：Azure Speech 資源金鑰（TTS 用）
-              - `SPEECH_REGION`：Azure Speech 資源 region（例如：`eastasia`）
-            """
-        )
 
     # YouTube 說明欄預設內容（優化版）
     youtube_description = """#Deutschlernen #GermanListening #TELC #Deutschverstehen
@@ -71,14 +59,34 @@ Tipps zum Lernen:
 3. Den Text laut nachsprechen (Shadowing)
 4. Mehrmals wiederholen – Sprache lernt man durch Wiederholung
 
+💡 Lerntipp:  
+Dieses Video lässt sich sehr gut zusammen mit dem Browser‑Add‑on **Language Reactor** verwenden (https://www.languagereactor.com/).  
+Damit kannst du Untertitel bequemer steuern, Vokabeln speichern und schwierige Stellen mehrfach im Kontext wiederholen.
+
 Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Kommentar oder ein Abo!
 
 #Deutschlernen #GermanListening #TestDaF #DSH #TELC #Goethe #GermanAudio #DeutschfürAusländer #GermanPractice #GermanReading #Deutschverstehen"""
 
+    # ====== 側邊欄：說明與所有配置 ======
+    with st.sidebar:
+        st.header("設定與說明")
+        with st.expander("使用說明（點我展開 / 收合）", expanded=False):
+            st.markdown(
+                """
+                使用 Azure Speech Service 將文字轉成語音檔案。
+
+                在執行本程式前，請先：
+                - 安裝套件：`pip install azure-cognitiveservices-speech streamlit`
+                - 設定 Streamlit secrets（推薦）或環境變數：
+                  - `SPEECH_KEY`：Azure Speech 資源金鑰（TTS 用）
+                  - `SPEECH_REGION`：Azure Speech 資源 region（例如：`eastasia`）
+                """
+            )
+
     st.subheader("文本輸入")
     raw_markdown = st.text_area(
         "請貼入 Markdown 文本（會自動去除標記後再送去朗讀）：",
-        height=220,
+        height=260,
     )
 
     def clean_markdown(text: str) -> str:
@@ -120,68 +128,87 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
         st.text_area(
             "預處理後（每句一行）將送給 Azure 朗讀的純文字（可檢查用）：",
             value=display_text,
-            height=180,
+            height=220,
         )
 
-        add_description = st.checkbox("在下方一併產生 YouTube 說明欄文本（可複製貼上 YouTube）")
-        if add_description:
-            combined_for_description = f"{display_text}\n\n\n{youtube_description}"
-            st.text_area(
-                "YouTube 說明欄（已包含本次文本與固定說明，可直接複製）：",
-                value=combined_for_description,
-                height=260,
+    # ====== 側邊欄：語音 / 輸出設定與用量提示 ======
+    with st.sidebar:
+        st.markdown("---")
+        start_clicked = st.button("開始語音合成")
+        st.markdown("---")
+        st.subheader("語音與輸出設定")
+
+        # 一些常用的 Azure Neural voice 範例
+        voice_options = {
+            "德語 女聲（de-DE-KatjaNeural）": "de-DE-KatjaNeural",
+            "德語 男聲（de-DE-ConradNeural）": "de-DE-ConradNeural",
+            "英文 女聲（en-US-JennyNeural）": "en-US-JennyNeural",
+            "英文 男聲（en-US-GuyNeural）": "en-US-GuyNeural",
+            "自訂 voice 名稱…": "custom",
+        }
+
+        selected_voice_label = st.selectbox(
+            "選擇一個 Azure 語音（voice）：",
+            list(voice_options.keys()),
+            index=0,
+        )
+
+        custom_voice = ""
+        if voice_options[selected_voice_label] == "custom":
+            custom_voice = st.text_input(
+                "請輸入自訂的 Azure 語音名稱（例如 de-DE-ElkeNeural）：",
+                value="",
             )
 
-    # 用量提示：本次字元數與大致占用免費額度比例（以清理後的文字為準）
-    char_count = len(cleaned_text)
-    monthly_free_chars = 500_000  # F0 / Free Tier 每月約 0.5M 字元
-    if char_count > 0:
-        ratio = char_count / monthly_free_chars * 100
-        st.info(
-            f"本次送給 Azure 的文字約 {char_count} 個字元。"
-            f" 若以每月免費 {monthly_free_chars:,} 字元計算，約占理論免費額度的 {ratio:.2f}%。"
+        # 最終要拿來送給 Azure 的 voice 名稱
+        voice = custom_voice if custom_voice.strip() else voice_options[selected_voice_label]
+
+        mode = st.radio(
+            "輸出類型：",
+            ["只產生 MP3 音檔", "產生黑底 MP4 影片"],
         )
 
-    st.subheader("語音與輸出設定")
+        auto_play = st.checkbox(
+            "合成完成後在網頁中立即朗讀（自動播放，可暫停/繼續）",
+            value=True,
+        )
 
-    # 一些常用的 Azure Neural voice 範例
-    voice_options = {
-        "德語 女聲（de-DE-KatjaNeural）": "de-DE-KatjaNeural",
-        "德語 男聲（de-DE-ConradNeural）": "de-DE-ConradNeural",
-        "英文 女聲（en-US-JennyNeural）": "en-US-JennyNeural",
-        "英文 男聲（en-US-GuyNeural）": "en-US-GuyNeural",
-        "自訂 voice 名稱…": "custom",
-    }
-
-    selected_voice_label = st.selectbox(
-        "選擇一個 Azure 語音（voice）：",
-        list(voice_options.keys()),
-        index=0,
-    )
-
-    custom_voice = ""
-    if voice_options[selected_voice_label] == "custom":
-        custom_voice = st.text_input(
-            "請輸入自訂的 Azure 語音名稱（例如 de-DE-ElkeNeural）：",
+        base_name = st.text_input(
+            "自訂檔名前綴（選填，不填時會用 Markdown 第一個標題 + 時間戳）：",
             value="",
         )
 
-    # 最終要拿來送給 Azure 的 voice 名稱
-    voice = custom_voice if custom_voice.strip() else voice_options[selected_voice_label]
+        st.markdown("---")
+        add_description = False
+        if display_text:
+            add_description = st.checkbox(
+                "產生包含固定模板的 YouTube 說明欄文本",
+                value=False,
+            )
 
-    mode = st.radio(
-        "輸出類型：",
-        ["只產生 MP3 音檔", "產生黑底 MP4 影片"],
-    )
+        st.markdown("---")
+        with st.expander("文字用量（點我展開 / 收合）", expanded=False):
+            char_count = len(cleaned_text)
+            monthly_free_chars = 500_000  # F0 / Free Tier 每月約 0.5M 字元
+            if char_count > 0:
+                ratio = char_count / monthly_free_chars * 100
+                st.info(
+                    f"本次送給 Azure 的文字約 {char_count} 個字元。\n"
+                    f"若以每月免費 {monthly_free_chars:,} 字元計算，約占理論免費額度的 {ratio:.2f}%。"
+                )
+            else:
+                st.write("目前還沒有可送給 Azure 的文字。")
 
-    auto_play = st.checkbox("合成完成後在網頁中立即朗讀（自動播放，可暫停/繼續）", value=True)
+    # 產生 YouTube 說明欄文本（顯示在主區）
+    if display_text and 'add_description' in locals() and add_description:
+        combined_for_description = f"{display_text}\n\n\n{youtube_description}"
+        st.text_area(
+            "YouTube 說明欄（已包含本次文本與固定說明，可直接複製）：",
+            value=combined_for_description,
+            height=260,
+        )
 
-    base_name = st.text_input(
-        "自訂檔名前綴（選填，不填時會用 Markdown 第一個標題 + 時間戳）：",
-        value="",
-    )
-
-    if st.button("開始語音合成"):
+    if start_clicked:
         if not cleaned_text.strip():
             st.error("請先輸入要轉成語音的 Markdown 文本。")
             return
@@ -212,6 +239,15 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
 
         audio_filename = os.path.join(output_dir, f"{final_base}.mp3")
         video_filename = os.path.join(output_dir, f"{final_base}.mp4")
+        subtitle_txt_filename = os.path.join(output_dir, f"{final_base}.txt")
+
+        # 將清洗後、每句一行的文本輸出成 .txt，方便餵給 YouTube 做字幕
+        if display_text:
+            try:
+                with open(subtitle_txt_filename, "w", encoding="utf-8") as f:
+                    f.write(display_text)
+            except Exception as e:
+                st.warning(f"輸出字幕用文本檔時發生錯誤：{e}")
 
         # 準備 Azure TTS
         speech_config = get_speech_config()
@@ -228,7 +264,10 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
             result = synthesizer.speak_text_async(cleaned_text).get()
 
         if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            st.success(f"語音合成完成，已輸出音檔：{audio_filename}")
+            st.success(
+                f"語音合成完成，已輸出音檔：{audio_filename}\n"
+                f"字幕用純文字檔：{subtitle_txt_filename}"
+            )
 
             # 播放 MP3（只顯示一個播放器；若勾選自動播放則用 HTML5 autoplay，否則用 st.audio）
             try:
