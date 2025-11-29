@@ -90,30 +90,51 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
     )
 
     def clean_markdown(text: str) -> str:
-        """簡單清掉常見 Markdown 標記，保留純文字。"""
+        """簡單清掉常見 Markdown 標記，保留純文字。
+        特別處理：
+        - 保留第一個標題的內容（當成正文開頭），其他標題仍刪除。
+        - 去掉常見粗體標記、項目符號與 emoji bullet。
+        """
         lines = text.splitlines()
         kept = []
+        first_heading_kept = False
         for line in lines:
             stripped = line.strip()
-            # 去除標題/分隔線/程式區塊標記等
+            # 去除空行
             if not stripped:
                 continue
-            if stripped.startswith("#"):
+            # 評分提示這類行直接丟掉
+            if stripped.startswith("✅"):
                 continue
+            # 標題處理
+            if stripped.startswith("#"):
+                # 只保留第一個標題的文字內容，其餘標題直接略過
+                if not first_heading_kept:
+                    heading_text = stripped.lstrip("#").strip()
+                    if heading_text:
+                        # 若標題末尾沒有句號等，補上一個句號，方便之後切句
+                        if not heading_text.endswith((".", "!", "?", "。", "！", "？")):
+                            heading_text += "."
+                        kept.append(heading_text)
+                    first_heading_kept = True
+                continue
+            # 分隔線 / 程式區塊標記
             if stripped.startswith("---") or stripped.startswith("***"):
                 continue
             if stripped.startswith("```"):
                 continue
-            # 去掉項目符號開頭
-            if stripped[0] in "-*+" and (len(stripped) == 1 or stripped[1] == " "):
-                stripped = stripped[1:].lstrip()
+            # 去掉常見項目符號與 emoji bullet
+            stripped = re.sub(r"^[-*+•✅▶️✔️]\s*", "", stripped)
+            # 去掉粗體 / 斜體標記 **text** / *text*
+            stripped = re.sub(r"\*\*(.*?)\*\*", r"\1", stripped)
+            stripped = re.sub(r"\*(.*?)\*", r"\1", stripped)
             kept.append(stripped)
         joined = " ".join(kept)
         return " ".join(joined.split())
 
     def split_sentences(text: str):
         """簡單依 . ? ! 切成句子。"""
-        parts = re.split(r"(?<=[\.?!])\s+", text)
+        parts = re.split(r"(?<=[\.?!。？！])\s+", text)
         return [p.strip() for p in parts if p.strip()]
 
     cleaned_text = clean_markdown(raw_markdown) if raw_markdown.strip() else ""
@@ -166,6 +187,14 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
         mode = st.radio(
             "輸出類型：",
             ["只產生 MP3 音檔", "產生黑底 MP4 影片"],
+        )
+
+        video_lead_seconds = st.slider(
+            "影片開頭空白秒數（僅影響 MP4，MP3 不延遲）：",
+            min_value=0,
+            max_value=10,
+            value=5,
+            step=1,
         )
 
         auto_play = st.checkbox(
@@ -294,6 +323,8 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
             if mode == "產生黑底 MP4 影片":
                 with st.spinner("正在用 ffmpeg 生成黑底影片…"):
                     try:
+                        # 將音訊延遲指定秒數，使影片開頭先有幾秒無聲畫面
+                        delay_ms = int(locals().get("video_lead_seconds", 5) * 1000)
                         subprocess.run(
                             [
                                 "ffmpeg",
@@ -304,6 +335,8 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
                                 "color=c=black:s=1920x1080:r=30",
                                 "-i",
                                 audio_filename,
+                                "-af",
+                                f"adelay={delay_ms}|{delay_ms}",
                                 "-shortest",
                                 video_filename,
                             ],

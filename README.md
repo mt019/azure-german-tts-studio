@@ -6,15 +6,17 @@ I built this small tool to turn German (or other language) text into high‑qual
 
 ### What this app does for me
 
-- I paste **Markdown text**, and the app automatically strips headings, lists and other markup so only clean, readable text is left.
+- I paste **Markdown text**, and the app automatically removes most markup and list symbols.
+- It keeps the **first heading** as the title sentence, and drops all later headings.
 - It splits the cleaned text into **one sentence per line**, which makes it easy for me to check and reuse the text.
-- It uses Azure Neural Voices to synthesize **MP3 audio**.
-- I can optionally generate a **black‑screen MP4 video** (handy for quick YouTube uploads).
+- It uses Azure Neural Voices to synthesize **German MP3 audio** (non‑German parts such as Chinese notes are meant to stay as on‑screen text, not audio).
+- I can optionally generate a **black‑screen MP4 video** and choose how many seconds of silent black screen I want at the beginning.
 - After synthesis, I can choose to **auto‑play the audio in the browser** (with pause / resume) or just play it manually.
-- Audio and video files are stored in `azure_outputs/` with filenames that include:
+- For every run, the app also writes a **subtitle‑friendly `.txt` file** (one sentence per line) to feed into YouTube.
+- All outputs are stored in `azure_outputs/` with filenames that include:
   - the first Markdown heading (cleaned)
   - a timestamp (`YYYYMMDD_HHMMSS`)
-- I can tick an option to **generate a YouTube description**, combining the current text with a reusable German description template.
+- I can tick an option to **generate a YouTube description**, combining the current text with a reusable German description template (including a hint to use Language Reactor).
 
 ---
 
@@ -66,31 +68,30 @@ The browser opens automatically (or I go to `http://localhost:8501`).
 
 My workflow in the UI:
 
-1. **Paste Markdown text**
+1. **Paste Markdown text（main area）**
    - The app:
-     - removes headings (any line starting with `#`)
-     - removes common Markdown markup and bullet symbols
+     - keeps the first heading as a title sentence, drops later headings
+     - removes common Markdown markup, list bullets and bold markers
      - joins everything into clean plain text.
-2. **Check the “one sentence per line” view**
+2. **Check the “one sentence per line” view（main area）**
    - The app splits by `.`, `?`, `!` into sentences and shows them one per line.
-   - Under that, it shows how many characters will be sent to Azure and roughly what percentage of the free 500k‑character quota this run consumes.
-3. **Voice and output settings**
-   - I pick an Azure Neural Voice (a few German/English examples are provided, or I can type a custom voice name).
+3. **Configure everything in the sidebar**
+   - I pick an Azure Neural Voice (German voices by default, or a custom voice name).
    - I choose output type:
      - only MP3
      - black‑screen MP4 (using `ffmpeg`)
-   - I choose whether to **auto‑play after synthesis**:
-     - if enabled, the app uses an HTML5 audio element with autoplay, pause and resume.
-4. **File naming and output folder**
+   - I choose how many seconds of silent black screen I want at the **start of the MP4**.
+   - I decide whether to **auto‑play after synthesis**.
+   - I set an optional filename prefix (otherwise the first heading is used).
+   - I can tick a checkbox to **generate a YouTube description** (text area in the main area).
+   - At the bottom of the sidebar there is a collapsible **usage info** block showing characters for this run and roughly what percentage of the free 500k‑character quota it consumes.
+   - At the very top of the sidebar there is the **“Start synthesis”** button.
+4. **File naming and outputs**
    - If I don’t set a custom prefix, the app uses the first Markdown heading as part of the filename.
    - Example output:
      - `azure_outputs/<cleaned_heading>_20251127_224839.mp3`
      - `azure_outputs/<cleaned_heading>_20251127_224839.mp4`
-5. **YouTube description (optional)**
-   - If I tick the checkbox, the app shows a text area that contains:
-     - my processed text (one sentence per line)
-     - a pre‑written German description + hashtags  
-   - I can copy‑paste that straight into YouTube.
+     - `azure_outputs/<cleaned_heading>_20251127_224839.txt` (one sentence per line, for YouTube subtitles)
 
 ---
 
@@ -146,15 +147,17 @@ My workflow:
 
 ### 我拿它來做什麼
 
-- 我貼上 **Markdown 文本**，程式會自動去除標題、列表等標記，只保留適合朗讀的純文字。
-- 它會把清理後的文字切成「一句一行」，方便我檢查或拿去做字幕。
-- 它用 Azure Neural Voice 合成 **MP3 音檔**。
-- 我可以選擇是否產生 **黑底 MP4 影片**，直接丟上 YouTube 很方便。
+- 我貼上 **Markdown 文本**，程式會自動清掉多數標記和項目符號。
+- 它會保留「第一個標題」當作開頭句子，其餘標題會被丟掉。
+- 它把清理後的文字切成「一句一行」，方便我檢查或拿去做字幕。
+- 它用 Azure Neural Voice 合成 **德文 MP3 音檔**（中文註解之類只出現在畫面和文字檔，不進到音軌裡）。
+- 我可以選擇是否產生 **黑底 MP4 影片**，還能設定影片開頭要先空幾秒黑畫面再開始講話。
 - 合成完成後，我可以選擇 **自動朗讀**，在瀏覽器裡播放（可以暫停 / 繼續）。
-- 音檔與影片會自動存到 `azure_outputs/`，檔名包含：
-  - Markdown 的第一個標題（清理後）
+- 每次合成時，程式也會輸出一個「**字幕用 .txt 檔**」（每句一行），方便拿去餵 YouTube 字幕。
+- 音檔、影片與字幕文字檔會自動存到 `azure_outputs/`，檔名包含：
+  - 清理過的第一個標題
   - 時間戳（`YYYYMMDD_HHMMSS`）
-- 我可以勾選一個選項，順便產生 **YouTube 說明欄文本**，把本次文本和固定的德文說明範本合在一起，一次複製貼上。
+- 我可以勾選一個選項，順便產生 **YouTube 說明欄文本**，把本次文本和固定的德文說明範本（含 Language Reactor 推薦）合在一起，一次複製貼上。
 
 ---
 
@@ -206,31 +209,30 @@ streamlit run azure_tts_app.py
 
 介面大致流程：
 
-1. **貼入 Markdown 文本**
+1. **貼入 Markdown 文本（主畫面）**
    - 介面會自動：
-     - 刪掉所有層級的標題（整行以 `#` 開頭的）
-     - 去掉常見的 Markdown 標記和項目符號
+     - 保留第一個標題作為開頭句子，其餘標題丟掉
+     - 去掉常見的 Markdown 標記、項目符號與粗體標記
      - 把內容合併成乾淨的純文字。
-2. **檢查「每句一行」的預處理文本**
+2. **檢查「每句一行」的預處理文本（主畫面）**
    - 程式會依 `.`、`?`、`!` 做簡單切句，一句顯示一行。
-   - 下方會顯示這次送給 Azure 的字元數，以及大約佔每月 50 萬免費字元的比例。
-3. **語音與輸出設定**
-   - 我選一個 Azure Neural Voice（預設有幾個常用德文／英文 voice，也可以自己填名稱）。
+3. **在側邊欄調整所有設定**
+   - 我選一個 Azure Neural Voice（預設幾個德文／英文 voice，也可以自己填名稱）。
    - 選輸出類型：
      - 只產生 MP3
      - 產生黑底 MP4（使用 `ffmpeg`）
-   - 決定是否「合成完成後自動朗讀」：
-     - 有勾選的話，用 HTML5 audio 自動播放，也可以暫停 / 繼續。
+   - 設定「影片開頭空白幾秒」只影響 MP4，音訊本身不延遲。
+   - 決定是否「合成完成後自動朗讀」。
+   - 視需要輸入自訂檔名前綴（不填就用第一個標題）。
+   - 勾選是否產生 YouTube 說明欄文本（會在主畫面顯示一個可複製的文字框）。
+   - 側邊欄最底部有一個可以展開/收合的「文字用量」區塊，顯示這次送給 Azure 的字元數與約略占免費額度多少 %。
+   - 側邊欄最上方就是「開始語音合成」按鈕。
 4. **檔名與輸出路徑**
    - 如果沒輸入自訂前綴，就用 Markdown 的第一個標題當作檔名的一部分。
    - 檔名大致像：
      - `azure_outputs/<清理後標題>_20251127_224839.mp3`
      - `azure_outputs/<清理後標題>_20251127_224839.mp4`
-5. **YouTube 說明欄文本（選用）**
-   - 勾選選項後，下方會多一個文字框，內容包含：
-     - 本次預處理後的逐句文本
-     - 預先寫好的德文說明欄 + Hashtags  
-   - 我可以一次複製貼上到 YouTube。
+     - `azure_outputs/<清理後標題>_20251127_224839.txt`（每句一行，給 YouTube 當字幕文字檔）
 
 ---
 
