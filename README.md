@@ -134,7 +134,7 @@ Real pricing and quotas depend on Azure’s current offering and my resource’s
 
 For me this project is both:
 
-1. A **daily tool** to generate German listening and reading material.  
+1. A **daily tool** to generate German listening, reading and speaking material (I use it a lot for shadowing / oral practice).  
 2. A small **lab** I can keep improving when I have new ideas.
 
 My workflow:
@@ -281,7 +281,7 @@ streamlit run azure_tts_app.py
 
 對我來說，這個專案同時是：
 
-1. 日常用的 **德文聽力／朗讀生產機**。  
+1. 日常用的 **德文聽力／朗讀／口說跟讀生產機**（我會搭配 shadowing 練口語）。  
 2. 可以一直調整的小型 **個人實驗室（Lab）**。
 
 我的使用方式：
