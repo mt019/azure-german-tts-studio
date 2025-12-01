@@ -9,7 +9,9 @@ import streamlit.components.v1 as components
 import base64
 
 
-YOUTUBE_DESCRIPTION_TEMPLATE = """#Deutschlernen #GermanListening #TELC #Deutschverstehen
+YOUTUBE_DESCRIPTION_TEMPLATES = {
+    # 一般德文聽力 / 閱讀 / 口語跟讀
+    "general_listening": """#Deutschlernen #GermanListening #TELC #Deutschverstehen
 📌 Deutsche Hörübung – Vorlesen eines Übungstextes zur Prüfungsvorbereitung
 
 In diesem Video wird ein deutscher Übungstext langsam, deutlich und mit natürlicher Betonung vorgelesen. Ideal für:
@@ -34,7 +36,76 @@ Damit kannst du Untertitel bequemer steuern, Vokabeln speichern und schwierige S
 
 Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Kommentar oder ein Abo!
 
-#Deutschlernen #GermanListening #TestDaF #DSH #TELC #Goethe #GermanAudio #DeutschfürAusländer #GermanPractice #GermanReading #Deutschverstehen"""
+#Deutschlernen #GermanListening #TestDaF #DSH #TELC #Goethe #GermanAudio #DeutschfürAusländer #GermanPractice #GermanReading #Deutschverstehen""",
+    # 德福 / 高階考試：聽力重點
+    "testdaf_listening": """#TestDaF #Deutschlernen #Hörverstehen #GermanListening
+📌 TestDaF / Hochschulprüfung – Hörverstehen-Training mit authentischem Übungstext
+
+In diesem Video hörst du einen deutschen Übungstext im prüfungsnahen Stil. Ideal für:
+✓ Vorbereitung auf TestDaF, DSH, telc Hochschule
+✓ Training des globalen und selektiven Hörverstehens
+✓ Gewöhnung an akademische Hörtexte und typische Prüfungssituationen
+
+🗣 Sprecher: neutrale, deutliche Aussprache in Standarddeutsch  
+🎧 Fokus: Hörverstehen, Notizen machen, Struktur erkennen
+
+Lerntipps:
+1. Zuerst einmal ohne Untertitel hören und nur grob mitschreiben
+2. Beim zweiten Hören gezielt auf Details achten (Zahlen, Argumente, Beispiele)
+3. Schwierige Stellen mehrfach wiederholen, bis die Struktur klar ist
+4. Zum Schluss laut mitsprechen (Shadowing), um Aussprache und Rhythmus zu üben
+
+💡 Bonus:  
+Zusammen mit **Language Reactor** im Browser kannst du Untertitel, Pausen und Wiederholungen noch besser steuern.
+
+Wenn dir dieses Hörtraining hilft, lass gerne einen Kommentar oder ein Abo da.
+
+#TestDaF #DSH #telcC1 #GermanExam #Hörverstehen #DeutschfürStudium""",
+    # 德福 / 口語題型
+    "testdaf_speaking": """#TestDaF #Deutschlernen #Sprechen #GermanSpeaking
+📌 TestDaF Mündliche Prüfung – Sprechanlass / Antwortbausteine zum Mitsprechen
+
+Dieses Video ist für die Vorbereitung auf die mündliche Prüfung gedacht. Ideal für:
+✓ TestDaF-Aufgaben zur Beschreibung, Meinungsäußerung und Diskussion
+✓ Strukturierte Antwortbausteine (Einleitung – Argumente – Schluss)
+✓ Lautes Mitsprechen (Shadowing) für mehr Sicherheit im Ausdruck
+
+🗣 Fokus: flüssiges, zusammenhängendes Sprechen in Prüfungssituationen  
+🎯 Ziel: typische Redemittel automatisieren, damit im Ernstfall mehr Kapazität fürs Denken bleibt
+
+Lerntipps:
+1. Höre den Text zuerst komplett durch und achte auf Aufbau und Redemittel
+2. Spule zurück und sprich einzelne Sätze oder Abschnitte laut nach
+3. Pausiere das Video und versuche, ähnliche Antworten mit eigenen Inhalten zu formulieren
+4. Wiederhole das Ganze mehrmals an verschiedenen Tagen, damit die Strukturen im Kopf bleiben
+
+Wenn du dir mehr Vorlagen für mündliche Prüfungen wünschst, schreib es gern in die Kommentare.
+
+#TestDaF #MündlichePrüfung #DeutschSprechen #Redemittel #GermanOralExam""",
+    # 德福 / 書寫題型
+    "testdaf_writing": """#TestDaF #Deutschlernen #Schreiben #GermanWriting
+📌 TestDaF Schriftlicher Ausdruck – Mustertext / Formulierungshilfen
+
+In diesem Video wird ein Mustertext für die schriftliche Prüfung vorgelesen. Ideal für:
+✓ Vorbereitung auf den schriftlichen Ausdruck im TestDaF
+✓ Einüben von typischen Einleitungen, Überleitungen und Schlussformulierungen
+✓ Wiederkehrende Formulierungen für Argumentation, Beschreibung und Stellungnahme
+
+🗣 Sprecher: ruhige, deutliche Aussprache in Standarddeutsch  
+📄 Inhalt: prüfungsnaher Beispieltext, der sich gut als Vorlage oder Inspiration eignet
+
+Lerntipps:
+1. Höre den Text einmal komplett, nur um Struktur und Aufbau zu verstehen
+2. Lies (oder höre) Abschnitt für Abschnitt und markiere dir nützliche Redemittel
+3. Versuche dann, mit denselben Bausteinen eigene Texte zu einem anderen Thema zu formulieren
+4. Nutze den Text zum laut Vorlesen, um Schriftbild und Aussprache gleichzeitig zu trainieren
+
+Wenn du mehr Beispieltexte für schriftliche Prüfungen brauchst, lass gern einen Kommentar oder ein Abo da.
+
+#TestDaF #SchriftlicherAusdruck #DeutschSchreiben #GermanWriting #DeutschPrüfung"""
+}
+
+DEFAULT_YT_TEMPLATE_KEY = "general_listening"
 
 def get_speech_config() -> speechsdk.SpeechConfig:
     # 優先從 Streamlit secrets 讀取
@@ -67,6 +138,8 @@ def main():
     st.title("Azure Text-to-Speech 語音合成 Demo")
 
     # ====== 側邊欄：說明與所有配置 ======
+    selected_description_template_key = DEFAULT_YT_TEMPLATE_KEY
+    current_description_template = YOUTUBE_DESCRIPTION_TEMPLATES[DEFAULT_YT_TEMPLATE_KEY]
     with st.sidebar:
         st.header("設定與說明")
         with st.expander("使用說明（點我展開 / 收合）", expanded=False):
@@ -81,10 +154,29 @@ def main():
                   - `SPEECH_REGION`：Azure Speech 資源 region（例如：`eastasia`）
                 """
             )
-        with st.expander("YouTube 說明欄模板（點我展開 / 收合）", expanded=False):
+        # st.markdown("---")
+        st.subheader("YouTube 說明欄模板")
+        yt_template_labels = {
+            "一般：聽力 / 閱讀 / 跟讀": "general_listening",
+            "德福 Hörverstehen（聽力題）": "testdaf_listening",
+            "德福 Mündliche Prüfung（口語題）": "testdaf_speaking",
+            "德福 Schriftlicher Ausdruck（寫作題）": "testdaf_writing",
+        }
+        selected_yt_label = st.selectbox(
+            "選擇說明欄用途（會影響模板內容）：",
+            list(yt_template_labels.keys()),
+            index=0,
+        )
+        selected_description_template_key = yt_template_labels[selected_yt_label]
+        current_description_template = YOUTUBE_DESCRIPTION_TEMPLATES.get(
+            selected_description_template_key,
+            YOUTUBE_DESCRIPTION_TEMPLATES[DEFAULT_YT_TEMPLATE_KEY],
+        )
+
+        with st.expander("查看目前選擇的說明欄模板（可複製調整）", expanded=False):
             st.text_area(
-                "固定的 YouTube 說明欄模板（可複製自行調整）：",
-                value=YOUTUBE_DESCRIPTION_TEMPLATE,
+                "目前選擇的 YouTube 說明欄模板（可複製自行調整）：",
+                value=current_description_template,
                 height=260,
             )
 
@@ -249,6 +341,7 @@ def main():
         st.markdown("---")
         add_description = False
         if display_text:
+            st.caption(f"目前將使用：「{selected_yt_label}」這個說明欄模板")
             add_description = st.checkbox(
                 "產生包含固定模板的 YouTube 說明欄文本",
                 value=False,
@@ -269,7 +362,11 @@ def main():
 
     # 產生 YouTube 說明欄文本（顯示在主區）
     if display_text and 'add_description' in locals() and add_description:
-        combined_for_description = f"{display_text}\n\n\n{YOUTUBE_DESCRIPTION_TEMPLATE}"
+        template_body = YOUTUBE_DESCRIPTION_TEMPLATES.get(
+            selected_description_template_key,
+            YOUTUBE_DESCRIPTION_TEMPLATES[DEFAULT_YT_TEMPLATE_KEY],
+        )
+        combined_for_description = f"{display_text}\n\n\n{template_body}"
         st.text_area(
             "YouTube 說明欄（已包含本次文本與固定說明，可直接複製）：",
             value=combined_for_description,

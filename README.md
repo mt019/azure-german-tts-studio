@@ -52,8 +52,6 @@ I use `st.secrets` to load my Azure keys.
 
 When I start Streamlit, the app reads `st.secrets["SPEECH_KEY"]` and `st.secrets["SPEECH_REGION"]`.
 
-> If I share this repo, I can add a `.streamlit/secrets.toml.example` as a template, but never commit real keys.
-
 ---
 
 ### How I run the Azure TTS app
@@ -83,8 +81,9 @@ My workflow in the UI:
    - I choose how many seconds of silent black screen I want at the **start of the MP4**.
    - I decide whether to **auto‑play after synthesis**.
    - I set an optional filename prefix (otherwise the first heading is used).
-   - I can tick a checkbox to **generate a YouTube description** (text area in the main area).
-   - The sidebar also has a collapsible **YouTube description template** block, showing a reusable German description I can copy and tweak.
+   - I choose a **YouTube description template purpose** (e.g. general listening, TestDaF listening / speaking / writing); this controls which reusable description text is used.
+   - I can tick a checkbox to **generate a YouTube description** (text area in the main area). Above the checkbox, the app shows which template is currently selected, so the option always matches the template choice.
+   - The sidebar also has a collapsible **YouTube description template** block, showing the currently selected reusable German description I can copy and tweak.
    - At the bottom of the sidebar there is a collapsible **usage info** block showing characters for this run and roughly what percentage of the free 500k‑character quota it consumes.
    - At the very top of the sidebar there is the **“Start synthesis”** button.
    - For long texts, I can choose between **“single pass”** and **“auto segmentation (recommended)”**:
@@ -198,8 +197,6 @@ pip install -r requirements.txt
 
 啟動 Streamlit 時，程式會從 `st.secrets["SPEECH_KEY"]` 和 `st.secrets["SPEECH_REGION"]` 讀取設定。
 
-> 如果要分享這個專案，我可以另外放一個 `.streamlit/secrets.toml.example` 給別人參考，但不要放真正的 key。
-
 ---
 
 ### 啟動 Azure TTS 介面
@@ -229,8 +226,9 @@ streamlit run azure_tts_app.py
    - 設定「影片開頭空白幾秒」只影響 MP4，音訊本身不延遲。
    - 決定是否「合成完成後自動朗讀」。
    - 視需要輸入自訂檔名前綴（不填就用第一個標題）。
-   - 勾選是否產生 YouTube 說明欄文本（會在主畫面顯示一個可複製的文字框）。
-   - 側邊欄中還有一個可收合的「YouTube 說明欄模板」區塊，內建一段德文說明範本，可以直接複製後再微調。
+   - 選擇 **YouTube 說明欄用途 / 模板**（例如：一般聽力、德福聽力 / 口語 / 書寫），這會決定使用哪一段說明欄範本文字。
+   - 勾選是否產生 YouTube 說明欄文本（會在主畫面顯示一個可複製的文字框），勾選上方會顯示「目前將使用哪一個模板」，確保選項與實際模板對得上。
+   - 側邊欄中還有一個可收合的「YouTube 說明欄模板」區塊，會顯示目前選擇的德文說明欄範本，可以直接複製後再微調。
    - 側邊欄最底部有一個可以展開/收合的「文字用量」區塊，顯示這次送給 Azure 的字元數與約略占免費額度多少 %。
    - 側邊欄最上方就是「開始語音合成」按鈕。
    - 針對長文本，我可以選擇：
