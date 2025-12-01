@@ -84,8 +84,13 @@ My workflow in the UI:
    - I decide whether to **auto‑play after synthesis**.
    - I set an optional filename prefix (otherwise the first heading is used).
    - I can tick a checkbox to **generate a YouTube description** (text area in the main area).
+   - The sidebar also has a collapsible **YouTube description template** block, showing a reusable German description I can copy and tweak.
    - At the bottom of the sidebar there is a collapsible **usage info** block showing characters for this run and roughly what percentage of the free 500k‑character quota it consumes.
    - At the very top of the sidebar there is the **“Start synthesis”** button.
+   - For long texts, I can choose between **“single pass”** and **“auto segmentation (recommended)”**:
+     - auto segmentation splits the cleaned text into sentences and then groups a configurable number of sentences per segment (e.g. 3–12),
+     - each segment is synthesized separately and then merged into one final MP3,
+     - temporary segment files and ffmpeg concat lists are cleaned up automatically, so only the final MP3/MP4 and subtitle `.txt` remain in `azure_outputs/`.
 4. **File naming and outputs**
    - If I don’t set a custom prefix, the app uses the first Markdown heading as part of the filename.
    - Example output:
@@ -225,8 +230,14 @@ streamlit run azure_tts_app.py
    - 決定是否「合成完成後自動朗讀」。
    - 視需要輸入自訂檔名前綴（不填就用第一個標題）。
    - 勾選是否產生 YouTube 說明欄文本（會在主畫面顯示一個可複製的文字框）。
+   - 側邊欄中還有一個可收合的「YouTube 說明欄模板」區塊，內建一段德文說明範本，可以直接複製後再微調。
    - 側邊欄最底部有一個可以展開/收合的「文字用量」區塊，顯示這次送給 Azure 的字元數與約略占免費額度多少 %。
    - 側邊欄最上方就是「開始語音合成」按鈕。
+   - 針對長文本，我可以選擇：
+     - 「整篇一次合成」，或
+     - 「自動分段（建議）」：會先把清理後的內容切成句子，再依「每段幾句」（例如 3–12 句）自動分成多段。
+       - 每一段會分別丟給 Azure 合成，最後再自動用 ffmpeg 合併成一個完整的 MP3。
+       - 中間產生的分段 mp3 檔與 ffmpeg 的清單檔會在合併成功後自動刪除，`azure_outputs/` 裡只會留下最終的 MP3 / MP4 / 字幕用 `.txt`。
 4. **檔名與輸出路徑**
    - 如果沒輸入自訂前綴，就用 Markdown 的第一個標題當作檔名的一部分。
    - 檔名大致像：

@@ -9,6 +9,33 @@ import streamlit.components.v1 as components
 import base64
 
 
+YOUTUBE_DESCRIPTION_TEMPLATE = """#Deutschlernen #GermanListening #TELC #Deutschverstehen
+📌 Deutsche Hörübung – Vorlesen eines Übungstextes zur Prüfungsvorbereitung
+
+In diesem Video wird ein deutscher Übungstext langsam, deutlich und mit natürlicher Betonung vorgelesen. Ideal für:
+✓ Vorbereitung auf TestDaF / DSH / Goethe / TELC
+✓ Training des Hörverstehens
+✓ Schattenlesen (Shadowing) und Nachsprechen
+✓ Wortschatzaufbau und Festigung grammatischer Strukturen
+✓ Gewöhnung an akademische Hörtexte
+
+🗣 Sprecher: Standarddeutscher Sprecher mit neutraler, klarer Aussprache  
+🎧 Inhalt: Vorlesen eines sachlichen deutschen Textes in prüfungsnahem Stil
+
+Tipps zum Lernen:
+1. Zuerst ohne Untertitel hören
+2. Danach mit deutschen Untertiteln (automatisch erzeugt) erneut anhören
+3. Den Text laut nachsprechen (Shadowing)
+4. Mehrmals wiederholen – Sprache lernt man durch Wiederholung
+
+💡 Lerntipp:  
+Dieses Video lässt sich sehr gut zusammen mit dem Browser‑Add‑on **Language Reactor** verwenden (https://www.languagereactor.com/).  
+Damit kannst du Untertitel bequemer steuern, Vokabeln speichern und schwierige Stellen mehrfach im Kontext wiederholen.
+
+Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Kommentar oder ein Abo!
+
+#Deutschlernen #GermanListening #TestDaF #DSH #TELC #Goethe #GermanAudio #DeutschfürAusländer #GermanPractice #GermanReading #Deutschverstehen"""
+
 def get_speech_config() -> speechsdk.SpeechConfig:
     # 優先從 Streamlit secrets 讀取
     key = st.secrets.get("SPEECH_KEY")
@@ -39,34 +66,6 @@ def main():
 
     st.title("Azure Text-to-Speech 語音合成 Demo")
 
-    # YouTube 說明欄預設內容（優化版）
-    youtube_description = """#Deutschlernen #GermanListening #TELC #Deutschverstehen
-📌 Deutsche Hörübung – Vorlesen eines Übungstextes zur Prüfungsvorbereitung
-
-In diesem Video wird ein deutscher Übungstext langsam, deutlich und mit natürlicher Betonung vorgelesen. Ideal für:
-✓ Vorbereitung auf TestDaF / DSH / Goethe / TELC
-✓ Training des Hörverstehens
-✓ Schattenlesen (Shadowing) und Nachsprechen
-✓ Wortschatzaufbau und Festigung grammatischer Strukturen
-✓ Gewöhnung an akademische Hörtexte
-
-🗣 Sprecher: Standarddeutscher Sprecher mit neutraler, klarer Aussprache  
-🎧 Inhalt: Vorlesen eines sachlichen deutschen Textes in prüfungsnahem Stil
-
-Tipps zum Lernen:
-1. Zuerst ohne Untertitel hören
-2. Danach mit deutschen Untertiteln (automatisch erzeugt) erneut anhören
-3. Den Text laut nachsprechen (Shadowing)
-4. Mehrmals wiederholen – Sprache lernt man durch Wiederholung
-
-💡 Lerntipp:  
-Dieses Video lässt sich sehr gut zusammen mit dem Browser‑Add‑on **Language Reactor** verwenden (https://www.languagereactor.com/).  
-Damit kannst du Untertitel bequemer steuern, Vokabeln speichern und schwierige Stellen mehrfach im Kontext wiederholen.
-
-Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Kommentar oder ein Abo!
-
-#Deutschlernen #GermanListening #TestDaF #DSH #TELC #Goethe #GermanAudio #DeutschfürAusländer #GermanPractice #GermanReading #Deutschverstehen"""
-
     # ====== 側邊欄：說明與所有配置 ======
     with st.sidebar:
         st.header("設定與說明")
@@ -81,6 +80,12 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
                   - `SPEECH_KEY`：Azure Speech 資源金鑰（TTS 用）
                   - `SPEECH_REGION`：Azure Speech 資源 region（例如：`eastasia`）
                 """
+            )
+        with st.expander("YouTube 說明欄模板（點我展開 / 收合）", expanded=False):
+            st.text_area(
+                "固定的 YouTube 說明欄模板（可複製自行調整）：",
+                value=YOUTUBE_DESCRIPTION_TEMPLATE,
+                height=260,
             )
 
     st.subheader("文本輸入")
@@ -140,9 +145,43 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
     cleaned_text = clean_markdown(raw_markdown) if raw_markdown.strip() else ""
 
     display_text = ""
+    sentences = []
     if cleaned_text:
         sentences = split_sentences(cleaned_text)
         display_text = "\n".join(sentences)
+
+    # ====== 長文本提示與分段設定（自動依句數切割） ======
+    segmentation_mode = "single"  # "single" 或 "auto"
+    sentences_per_segment = 5
+    word_count = 0
+
+    if cleaned_text:
+        word_count = len(cleaned_text.split())
+
+    if sentences:
+        st.info(
+            f"目前清洗後文本約 {word_count} 個詞，共 {len(sentences)} 句。\n"
+            "Azure 單次合成約 10 分鐘上限，建議使用自動分段以避免超時或被取消。"
+        )
+        seg_choice = st.radio(
+            "長文本處理方式：",
+            ["整篇一次合成", "自動分段（建議）"],
+            index=1,
+        )
+        if seg_choice == "自動分段（建議）":
+            segmentation_mode = "auto"
+            sentences_per_segment = st.slider(
+                "每段大約幾句？（較小較安全）",
+                min_value=3,
+                max_value=12,
+                value=5,
+                step=1,
+                help="程式會依序每 N 句切一段，最後一段可能略短。句數愈少，單段長度愈安全。",
+            )
+            approx_segments = max(1, (len(sentences) + sentences_per_segment - 1) // sentences_per_segment)
+            st.caption(
+                f"目前預估會切成約 {approx_segments} 段（實際依句數微調）。"
+            )
 
     combined_for_description = ""
     if display_text:
@@ -230,7 +269,7 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
 
     # 產生 YouTube 說明欄文本（顯示在主區）
     if display_text and 'add_description' in locals() and add_description:
-        combined_for_description = f"{display_text}\n\n\n{youtube_description}"
+        combined_for_description = f"{display_text}\n\n\n{YOUTUBE_DESCRIPTION_TEMPLATE}"
         st.text_area(
             "YouTube 說明欄（已包含本次文本與固定說明，可直接複製）：",
             value=combined_for_description,
@@ -283,74 +322,168 @@ Wenn du weitere deutsche Hörübungen möchtest, freue ich mich über einen Komm
         if voice:
             speech_config.speech_synthesis_voice_name = voice
 
-        audio_config = speechsdk.audio.AudioConfig(filename=audio_filename)
-        synthesizer = speechsdk.SpeechSynthesizer(
-            speech_config=speech_config,
-            audio_config=audio_config,
-        )
+        # 準備要送進 TTS 的分段文本
+        def build_segments_auto(all_sentences, per_segment: int):
+            if not all_sentences:
+                return []
+            if per_segment <= 0:
+                return [" ".join(all_sentences).strip()]
+            segments = []
+            total = len(all_sentences)
+            start = 0
+            while start < total:
+                end = min(start + per_segment, total)
+                segments.append(" ".join(all_sentences[start:end]).strip())
+                start = end
+            return [s for s in segments if s]
 
-        with st.spinner("Azure 正在合成語音，請稍候…"):
-            result = synthesizer.speak_text_async(cleaned_text).get()
+        # 依長文本模式決定分段；否則整篇一次送出
+        tts_segments = []
+        if segmentation_mode == "auto" and sentences:
+            tts_segments = build_segments_auto(sentences, sentences_per_segment)
+        else:
+            # 退而求其次，以 cleaned_text 當作單一段
+            tts_segments = [cleaned_text]
 
-        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            st.success(
-                f"語音合成完成，已輸出音檔：{audio_filename}\n"
-                f"字幕用純文字檔：{subtitle_txt_filename}"
+        if not tts_segments:
+            st.error("沒有可用來語音合成的文本分段。")
+            return
+
+        st.info(f"本次將分成 {len(tts_segments)} 段進行語音合成。")
+
+        # 逐段合成，輸出多個臨時音檔，再之後合併
+        part_files = []
+        progress_bar = st.progress(0)
+
+        for idx, segment in enumerate(tts_segments, start=1):
+            part_path = os.path.join(output_dir, f"{final_base}_part_{idx:03d}.mp3")
+            audio_config_part = speechsdk.audio.AudioConfig(filename=part_path)
+            synthesizer_part = speechsdk.SpeechSynthesizer(
+                speech_config=speech_config,
+                audio_config=audio_config_part,
             )
 
-            # 播放 MP3（只顯示一個播放器；若勾選自動播放則用 HTML5 autoplay，否則用 st.audio）
+            with st.spinner(f"Azure 正在合成第 {idx}/{len(tts_segments)} 段…"):
+                result = synthesizer_part.speak_text_async(segment).get()
+
+            if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                part_files.append(part_path)
+                progress_bar.progress(idx / len(tts_segments))
+            elif result.reason == speechsdk.ResultReason.Canceled:
+                cancellation = result.cancellation_details
+                st.error(
+                    f"第 {idx} 段合成被取消：{cancellation.reason} - {cancellation.error_details}"
+                )
+                return
+            else:
+                st.error(f"第 {idx} 段合成結果未知：{result.reason}")
+                return
+
+        progress_bar.progress(1.0)
+
+        # 所有分段皆成功合成後，使用 ffmpeg concat 模式合併為一個完整 MP3
+        concat_list_path = os.path.join(output_dir, f"{final_base}_concat_list.txt")
+        try:
+            with open(concat_list_path, "w", encoding="utf-8") as f:
+                for part in part_files:
+                    # ffmpeg concat 檔案列表格式：file 'path'
+                    f.write(f"file '{os.path.abspath(part)}'\n")
+
+            with st.spinner("正在合併各段音檔為完整 MP3…"):
+                subprocess.run(
+                    [
+                        "ffmpeg",
+                        "-y",
+                        "-f",
+                        "concat",
+                        "-safe",
+                        "0",
+                        "-i",
+                        concat_list_path,
+                        "-c",
+                        "copy",
+                        audio_filename,
+                    ],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=True,
+                )
+            # 合併成功後，清理中間切片檔與清單檔，只保留完整 MP3
+            for part in part_files:
+                try:
+                    os.remove(part)
+                except Exception:
+                    pass
             try:
-                with open(audio_filename, "rb") as f:
-                    audio_bytes = f.read()
+                os.remove(concat_list_path)
+            except Exception:
+                pass
+        except subprocess.CalledProcessError as e:
+            st.error(f"合併分段音檔時 ffmpeg 發生錯誤：{e}")
+            return
+        except Exception as e:
+            st.error(f"合併分段音檔時發生錯誤：{e}")
+            return
 
-                if auto_play:
-                    b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
-                    components.html(
-                        f"""
-                        <audio controls autoplay>
-                            <source src="data:audio/mpeg;base64,{b64_audio}" type="audio/mpeg">
-                            Your browser does not support the audio element.
-                        </audio>
-                        """,
-                        height=80,
+        st.success(
+            f"語音合成完成，已輸出音檔：{audio_filename}\n"
+            f"字幕用純文字檔：{subtitle_txt_filename}"
+        )
+
+        # 播放 MP3（只顯示一個播放器；若勾選自動播放則用 HTML5 autoplay，否則用 st.audio）
+        try:
+            with open(audio_filename, "rb") as f:
+                audio_bytes = f.read()
+
+            if auto_play:
+                b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
+                components.html(
+                    f"""
+                    <audio controls autoplay>
+                        <source src="data:audio/mpeg;base64,{b64_audio}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                    """,
+                    height=80,
+                )
+            else:
+                st.audio(audio_bytes, format="audio/mp3")
+        except Exception as e:
+            st.warning(f"音檔已產生，但讀取播放時發生錯誤：{e}")
+
+        # 若選擇產生影片，呼叫 ffmpeg 做黑底影片（使用合併後的完整音檔）
+        if mode == "產生黑底 MP4 影片":
+            video_progress = st.progress(0)
+            with st.spinner("正在用 ffmpeg 生成黑底影片…"):
+                try:
+                    # 將音訊延遲指定秒數，使影片開頭先有幾秒無聲畫面
+                    delay_ms = int(locals().get("video_lead_seconds", 5) * 1000)
+                    subprocess.run(
+                        [
+                            "ffmpeg",
+                            "-y",
+                            "-f",
+                            "lavfi",
+                            "-i",
+                            "color=c=black:s=1920x1080:r=30",
+                            "-i",
+                            audio_filename,
+                            "-af",
+                            f"adelay={delay_ms}|{delay_ms}",
+                            "-shortest",
+                            video_filename,
+                        ],
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=True,
                     )
-                else:
-                    st.audio(audio_bytes, format="audio/mp3")
-            except Exception as e:
-                st.warning(f"音檔已產生，但讀取播放時發生錯誤：{e}")
-
-            # 若選擇產生影片，呼叫 ffmpeg 做黑底影片
-            if mode == "產生黑底 MP4 影片":
-                with st.spinner("正在用 ffmpeg 生成黑底影片…"):
-                    try:
-                        # 將音訊延遲指定秒數，使影片開頭先有幾秒無聲畫面
-                        delay_ms = int(locals().get("video_lead_seconds", 5) * 1000)
-                        subprocess.run(
-                            [
-                                "ffmpeg",
-                                "-y",
-                                "-f",
-                                "lavfi",
-                                "-i",
-                                "color=c=black:s=1920x1080:r=30",
-                                "-i",
-                                audio_filename,
-                                "-af",
-                                f"adelay={delay_ms}|{delay_ms}",
-                                "-shortest",
-                                video_filename,
-                            ],
-                            check=True,
-                        )
-                        st.success(f"影片生成完成：{video_filename}")
-                        st.video(video_filename)
-                    except subprocess.CalledProcessError as e:
-                        st.error(f"生成影片時 ffmpeg 發生錯誤：{e}")
-        elif result.reason == speechsdk.ResultReason.Canceled:
-            cancellation = result.cancellation_details
-            st.error(f"合成被取消：{cancellation.reason} - {cancellation.error_details}")
-        else:
-            st.error(f"未知結果：{result.reason}")
+                    video_progress.progress(100)
+                    st.success(f"影片生成完成：{video_filename}")
+                    st.video(video_filename)
+                except subprocess.CalledProcessError as e:
+                    st.error(f"生成影片時 ffmpeg 發生錯誤：{e}")
 
 
 if __name__ == "__main__":
