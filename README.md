@@ -1,5 +1,7 @@
 # German TTS Lab – Azure Speech + Streamlit
 
+> 詳細的開發變更與優化紀錄，請參見 `ENGINEERING_LOG.md`。
+
 ## English
 
 I built this small tool to turn German (or other language) text into high‑quality audio and simple black‑screen videos using **Azure Speech Service (Text‑to‑Speech)** and **Streamlit**.

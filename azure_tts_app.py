@@ -73,11 +73,15 @@ Dieses Video ist für die Vorbereitung auf die mündliche Prüfung gedacht. Idea
 🗣 Fokus: flüssiges, zusammenhängendes Sprechen in Prüfungssituationen  
 🎯 Ziel: typische Redemittel automatisieren, damit im Ernstfall mehr Kapazität fürs Denken bleibt
 
-Lerntipps:
+💡 Lerntipps:
 1. Höre den Text zuerst komplett durch und achte auf Aufbau und Redemittel
 2. Spule zurück und sprich einzelne Sätze oder Abschnitte laut nach
 3. Pausiere das Video und versuche, ähnliche Antworten mit eigenen Inhalten zu formulieren
 4. Wiederhole das Ganze mehrmals an verschiedenen Tagen, damit die Strukturen im Kopf bleiben
+
+ 
+Dieses Video lässt sich sehr gut zusammen mit dem Browser‑Add‑on **Language Reactor** verwenden (https://www.languagereactor.com/).  
+Damit kannst du Untertitel bequemer steuern, Vokabeln speichern und schwierige Stellen mehrfach im Kontext wiederholen.
 
 Wenn du dir mehr Vorlagen für mündliche Prüfungen wünschst, schreib es gern in die Kommentare.
 
@@ -94,11 +98,15 @@ In diesem Video wird ein Mustertext für die schriftliche Prüfung vorgelesen. I
 🗣 Sprecher: ruhige, deutliche Aussprache in Standarddeutsch  
 📄 Inhalt: prüfungsnaher Beispieltext, der sich gut als Vorlage oder Inspiration eignet
 
-Lerntipps:
+💡 Lerntipps:
 1. Höre den Text einmal komplett, nur um Struktur und Aufbau zu verstehen
 2. Lies (oder höre) Abschnitt für Abschnitt und markiere dir nützliche Redemittel
 3. Versuche dann, mit denselben Bausteinen eigene Texte zu einem anderen Thema zu formulieren
 4. Nutze den Text zum laut Vorlesen, um Schriftbild und Aussprache gleichzeitig zu trainieren
+
+💡 Bonus:  
+Dieses Video lässt sich sehr gut zusammen mit dem Browser‑Add‑on **Language Reactor** verwenden (https://www.languagereactor.com/).  
+Damit kannst du Untertitel bequemer steuern, Vokabeln speichern und schwierige Stellen mehrfach im Kontext wiederholen.
 
 Wenn du mehr Beispieltexte für schriftliche Prüfungen brauchst, lass gern einen Kommentar oder ein Abo da.
 
@@ -187,18 +195,20 @@ def main():
     )
 
     def clean_markdown(text: str) -> str:
-        """簡單清掉常見 Markdown 標記，保留純文字。
+        """簡單清掉常見 Markdown 標記，保留純文字，並盡量保留原始換行。
         特別處理：
         - 保留第一個標題的內容（當成正文開頭），其他標題仍刪除。
         - 去掉常見粗體標記、項目符號與 emoji bullet。
+        - 原文中的換行會盡量被保留為行分隔符。
         """
         lines = text.splitlines()
         kept = []
         first_heading_kept = False
         for line in lines:
             stripped = line.strip()
-            # 去除空行
+            # 空行：保留為段落分隔（之後會變成一個空行）
             if not stripped:
+                kept.append("")
                 continue
             # 評分提示這類行直接丟掉
             if stripped.startswith("✅"):
@@ -226,13 +236,34 @@ def main():
             stripped = re.sub(r"\*\*(.*?)\*\*", r"\1", stripped)
             stripped = re.sub(r"\*(.*?)\*", r"\1", stripped)
             kept.append(stripped)
-        joined = " ".join(kept)
-        return " ".join(joined.split())
+
+        # 以換行重新接回文字，以保留原本的行結構
+        joined = "\n".join(kept)
+        # 壓縮多餘的連續空白行（最多保留兩個換行）
+        joined = re.sub(r"\n{3,}", "\n\n", joined)
+        return joined
 
     def split_sentences(text: str):
-        """簡單依 . ? ! 切成句子。"""
-        parts = re.split(r"(?<=[\.?!。？！])\s+", text)
-        return [p.strip() for p in parts if p.strip()]
+        """簡單依 . ? ! 切成句子，並盡量保留原始換行結構。
+
+        原則：
+        - 先按行處理，以保留原文換行。
+        - 每一行內再依句號等切句。
+        - 原本為空行的，保留為空字串，最後在顯示時仍是一個換行。
+        """
+        sentences = []
+        for line in text.splitlines():
+            stripped_line = line.strip()
+            # 保留空行（作為段落分隔）
+            if not stripped_line:
+                sentences.append("")
+                continue
+            parts = re.split(r"(?<=[\.?!。？！])\s+", stripped_line)
+            for p in parts:
+                p = p.strip()
+                if p:
+                    sentences.append(p)
+        return sentences
 
     cleaned_text = clean_markdown(raw_markdown) if raw_markdown.strip() else ""
 
