@@ -244,25 +244,17 @@ def main():
         return joined
 
     def split_sentences(text: str):
-        """簡單依 . ? ! 切成句子，並盡量保留原始換行結構。
+        """改為只依原始換行切成「行」，不再用標點符號斷句。
 
         原則：
-        - 先按行處理，以保留原文換行。
-        - 每一行內再依句號等切句。
+        - 每一行視為一個朗讀單位。
         - 原本為空行的，保留為空字串，最後在顯示時仍是一個換行。
+        - 這樣可避免像「z.b.」這類包含句點的縮寫被誤切斷。
         """
         sentences = []
         for line in text.splitlines():
-            stripped_line = line.strip()
-            # 保留空行（作為段落分隔）
-            if not stripped_line:
-                sentences.append("")
-                continue
-            parts = re.split(r"(?<=[\.?!。？！])\s+", stripped_line)
-            for p in parts:
-                p = p.strip()
-                if p:
-                    sentences.append(p)
+            # 直接保留原行（含空行），只做右側去除換行符號
+            sentences.append(line.rstrip("\n"))
         return sentences
 
     cleaned_text = clean_markdown(raw_markdown) if raw_markdown.strip() else ""
@@ -349,6 +341,7 @@ def main():
         mode = st.radio(
             "輸出類型：",
             ["只產生 MP3 音檔", "產生黑底 MP4 影片"],
+            index=1,  # 預設改為「產生黑底 MP4 影片」
         )
 
         video_lead_seconds = st.slider(

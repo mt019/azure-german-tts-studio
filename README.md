@@ -10,9 +10,9 @@ I built this small tool to turn German (or other language) text into high‑qual
 
 - I paste **Markdown text**, and the app automatically removes most markup and list symbols.
 - It keeps the **first heading** as the title sentence, and drops all later headings.
-- It splits the cleaned text into **one sentence per line**, which makes it easy for me to check and reuse the text.
+- It keeps **line breaks** from the original text and shows the cleaned content as **one line per original line**, so I can manually control where the TTS should pause.
 - It uses Azure Neural Voices to synthesize **German MP3 audio** (non‑German parts such as Chinese notes are meant to stay as on‑screen text, not audio).
-- I can optionally generate a **black‑screen MP4 video** and choose how many seconds of silent black screen I want at the beginning.
+- I can optionally generate a **black‑screen MP4 video** and choose how many seconds of silent black screen I want at the beginning; **by default the app is set to output a black‑screen MP4**.
 - After synthesis, I can choose to **auto‑play the audio in the browser** (with pause / resume) or just play it manually.
 - For every run, the app also writes a **subtitle‑friendly `.txt` file** (one sentence per line) to feed into YouTube.
 - All outputs are stored in `azure_outputs/` with filenames that include:
@@ -72,14 +72,14 @@ My workflow in the UI:
    - The app:
      - keeps the first heading as a title sentence, drops later headings
      - removes common Markdown markup, list bullets and bold markers
-     - joins everything into clean plain text.
+     - cleans everything into plain text while keeping useful line breaks (each original line will be one TTS unit).
 2. **Check the “one sentence per line” view（main area）**
-   - The app splits by `.`, `?`, `!` into sentences and shows them one per line.
+   - The app shows the cleaned text **one line per original line** (no extra splitting by `.`, `?`, `!`), so I can control pauses by adding manual line breaks in my Markdown.
 3. **Configure everything in the sidebar**
    - I pick an Azure Neural Voice (German voices by default, or a custom voice name).
    - I choose output type:
      - only MP3
-     - black‑screen MP4 (using `ffmpeg`)
+     - black‑screen MP4 (using `ffmpeg`) – **this is the default selection**
    - I choose how many seconds of silent black screen I want at the **start of the MP4**.
    - I decide whether to **auto‑play after synthesis**.
    - I set an optional filename prefix (otherwise the first heading is used).
@@ -155,9 +155,9 @@ My workflow:
 
 - 我貼上 **Markdown 文本**，程式會自動清掉多數標記和項目符號。
 - 它會保留「第一個標題」當作開頭句子，其餘標題會被丟掉。
-- 它把清理後的文字切成「一句一行」，方便我檢查或拿去做字幕。
+- 它把清理後的文字依「原始換行」顯示成「一行一單位」，方便我檢查或拿去做字幕，也可以自己透過加換行來控制停頓。
 - 它用 Azure Neural Voice 合成 **德文 MP3 音檔**（中文註解之類只出現在畫面和文字檔，不進到音軌裡）。
-- 我可以選擇是否產生 **黑底 MP4 影片**，還能設定影片開頭要先空幾秒黑畫面再開始講話。
+- 我可以選擇是否產生 **黑底 MP4 影片**，還能設定影片開頭要先空幾秒黑畫面再開始講話；**目前介面預設勾選的是黑底 MP4 影片**。
 - 合成完成後，我可以選擇 **自動朗讀**，在瀏覽器裡播放（可以暫停 / 繼續）。
 - 每次合成時，程式也會輸出一個「**字幕用 .txt 檔**」（每句一行），方便拿去餵 YouTube 字幕。
 - 音檔、影片與字幕文字檔會自動存到 `azure_outputs/`，檔名包含：
@@ -217,14 +217,14 @@ streamlit run azure_tts_app.py
    - 介面會自動：
      - 保留第一個標題作為開頭句子，其餘標題丟掉
      - 去掉常見的 Markdown 標記、項目符號與粗體標記
-     - 把內容合併成乾淨的純文字。
+     - 盡量保留原始換行，把內容清成乾淨的純文字。
 2. **檢查「每句一行」的預處理文本（主畫面）**
-   - 程式會依 `.`、`?`、`!` 做簡單切句，一句顯示一行。
+   - 程式會依「原始換行」顯示，一行視為一個朗讀單位，不再依 `.`、`?`、`!` 額外切句；我可以靠自己在 Markdown 裡加換行來控制停頓。
 3. **在側邊欄調整所有設定**
    - 我選一個 Azure Neural Voice（預設幾個德文／英文 voice，也可以自己填名稱）。
    - 選輸出類型：
      - 只產生 MP3
-     - 產生黑底 MP4（使用 `ffmpeg`）
+     - 產生黑底 MP4（使用 `ffmpeg`）——**目前預設選項**
    - 設定「影片開頭空白幾秒」只影響 MP4，音訊本身不延遲。
    - 決定是否「合成完成後自動朗讀」。
    - 視需要輸入自訂檔名前綴（不填就用第一個標題）。
